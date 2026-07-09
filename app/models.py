@@ -46,6 +46,9 @@ class ProductResult:
     category: str | None = None
     category_raw: str | None = None
     category_url: str | None = None
+    category_source: str | None = None
+    category_url_source: str | None = None
+    page_type: str | None = None
     category_ads: list[SponsoredResult] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[ErrorDetail] = field(default_factory=list)
@@ -76,4 +79,3 @@ def utc_now_iso() -> str:
 
 def to_dict(value: Any) -> Any:
     return asdict(value)
-

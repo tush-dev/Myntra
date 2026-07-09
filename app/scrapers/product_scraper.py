@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
+import re
+
 from app.config import Settings
 from app.models import ErrorDetail, ProductResult
 from app.scrapers.parsers import MYNTRA_BASE_URL, parse_product_page
 from app.utils.retry import FetchError, fetch_text
+
+logger = logging.getLogger(__name__)
 
 
 def scrape_product(product_id: str, settings: Settings) -> ProductResult:
@@ -11,6 +16,15 @@ def scrape_product(product_id: str, settings: Settings) -> ProductResult:
     try:
         response = fetch_text(result.product_url, settings)
         result.product_url = response.final_url
+        logger.info(
+            "product_fetch product_id=%s status=%s final_url=%s content_type=%s bytes=%s title=%r",
+            product_id,
+            response.status,
+            response.final_url,
+            response.content_type,
+            response.byte_count,
+            _page_title(response.text),
+        )
     except FetchError as exc:
         result.errors.append(
             ErrorDetail("product_fetch", exc.code, exc.message, retryable=exc.retryable, attempts=exc.attempts)
@@ -33,6 +47,52 @@ def scrape_product(product_id: str, settings: Settings) -> ProductResult:
     result.category = parsed.category
     result.category_raw = parsed.category_raw
     result.category_url = parsed.category_url
+    result.category_source = parsed.category_source
+    result.category_url_source = parsed.category_url_source
+    result.page_type = parsed.page_type
+
+    logger.info(
+        "product_parse product_id=%s page_type=%s fields=%s category=%r category_url=%r category_source=%s category_url_source=%s",
+        product_id,
+        result.page_type,
+        {
+            "title": bool(result.title),
+            "description": bool(result.description),
+            "images": len(result.images),
+            "rating": result.rating is not None,
+            "total_ratings_count": result.total_ratings_count is not None,
+        },
+        result.category,
+        result.category_url,
+        result.category_source,
+        result.category_url_source,
+    )
+
+    if result.page_type == "challenge":
+        result.errors.append(
+            ErrorDetail(
+                "product_fetch",
+                "CHALLENGE_PAGE",
+                "Remote server returned a challenge or bot-detection page instead of product HTML.",
+                retryable=True,
+                attempts=response.attempts,
+            )
+        )
+        result.status = "failed"
+        return result
+    if result.page_type == "unknown" and not any([result.title, result.description, result.images]):
+        result.errors.append(
+            ErrorDetail(
+                "product_parse",
+                "UNRECOGNIZED_PAGE",
+                "Fetched page did not contain recognizable Myntra product data.",
+                retryable=False,
+                attempts=1,
+            )
+        )
+        result.status = "failed"
+        return result
+
     result.status = "partial"
 
     for field_name in ["title", "description", "rating", "total_ratings_count", "category"]:
@@ -42,3 +102,8 @@ def scrape_product(product_id: str, settings: Settings) -> ProductResult:
         result.warnings.append("Missing images.")
 
     return result
+
+
+def _page_title(html_text: str) -> str | None:
+    match = re.search(r"<title>(.*?)</title>", html_text, re.S | re.I)
+    return match.group(1).strip() if match else None

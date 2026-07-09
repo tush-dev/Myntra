@@ -74,9 +74,9 @@ def _process_one(product: ProductInput, settings: Settings, category_cache: dict
 
 
 def _status_for(result: ProductResult) -> str:
-    if result.status == "failed" and result.title is None and not result.images and result.category is None:
+    if result.status == "failed" and not _has_meaningful_product_data(result):
         return "failed"
-    if result.errors and result.title is None and not result.images:
+    if result.errors and not _has_meaningful_product_data(result):
         return "failed"
     core_complete = all(
         [
@@ -91,6 +91,10 @@ def _status_for(result: ProductResult) -> str:
     )
     category_step_ok = not any(error.stage in {"category_fetch", "sponsored_parse"} for error in result.errors)
     return "success" if core_complete and category_step_ok else "partial"
+
+
+def _has_meaningful_product_data(result: ProductResult) -> bool:
+    return any([result.title, result.description, result.images, result.rating is not None, result.category])
 
 
 def _summarize(

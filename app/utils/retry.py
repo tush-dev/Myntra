@@ -14,6 +14,8 @@ class FetchResponse:
     url: str
     final_url: str
     status: int
+    content_type: str | None
+    byte_count: int
     text: str
     attempts: int
 
@@ -51,6 +53,8 @@ def fetch_text(url: str, settings: Settings) -> FetchResponse:
                     url=url,
                     final_url=response.geturl(),
                     status=response.status,
+                    content_type=response.headers.get("content-type"),
+                    byte_count=len(raw),
                     text=raw.decode(charset, errors="replace"),
                     attempts=attempt,
                 )
@@ -67,4 +71,3 @@ def fetch_text(url: str, settings: Settings) -> FetchResponse:
 
     assert last_error is not None
     raise last_error
-
