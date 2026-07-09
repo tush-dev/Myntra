@@ -49,6 +49,11 @@ class ProductResult:
     category_source: str | None = None
     category_url_source: str | None = None
     page_type: str | None = None
+    fetch_status: int | None = None
+    fetch_content_type: str | None = None
+    fetch_bytes: int | None = None
+    html_title: str | None = None
+    visible_text_preview: str | None = None
     category_ads: list[SponsoredResult] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[ErrorDetail] = field(default_factory=list)

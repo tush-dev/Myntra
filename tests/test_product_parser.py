@@ -42,3 +42,9 @@ def test_blocked_challenge_page_detection() -> None:
     html = "<html><head><title>Access Denied</title></head><body>Verify you are human</body></html>"
     product = parse_product_page(html)
     assert product.page_type == "challenge"
+
+
+def test_client_shell_page_detection() -> None:
+    html = "<html><head><title>Myntra</title></head><body><div id=\"mountRoot\"></div><script src=\"app.js\"></script></body></html>"
+    product = parse_product_page(html)
+    assert product.page_type == "client_shell"

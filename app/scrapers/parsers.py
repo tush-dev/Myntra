@@ -4,6 +4,7 @@ import html
 import json
 import re
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from typing import Any
 
 from app.models import SponsoredResult
@@ -104,6 +105,7 @@ def detect_page_type(html_text: str, state: dict[str, Any] | None = None, produc
         return "listing"
 
     title = _page_title(html_text)
+    visible = visible_text_preview(html_text, limit=500).lower()
     lower = html_text[:20000].lower()
     challenge_signals = [
         "access denied",
@@ -118,7 +120,22 @@ def detect_page_type(html_text: str, state: dict[str, Any] | None = None, produc
         "window.__myx" not in html_text and any(signal in lower for signal in challenge_signals)
     ):
         return "challenge"
+    if not html_text.strip() or (not title and len(visible) < 40):
+        return "empty"
+    if "window.__myx" not in html_text and title and "myntra" in title.lower():
+        return "client_shell"
+    if title and "search" in title.lower():
+        return "search"
+    if title and "myntra" in title.lower():
+        return "home_or_shell"
     return "unknown"
+
+
+def visible_text_preview(html_text: str, limit: int = 300) -> str:
+    parser = _VisibleTextParser()
+    parser.feed(html_text)
+    text = re.sub(r"\s+", " ", " ".join(parser.parts)).strip()
+    return text[:limit]
 
 
 def parse_category_ads(html_text: str, limit: int = 3) -> list[SponsoredResult]:
@@ -307,6 +324,25 @@ def _slugify_category(value: str) -> str:
     text = html.unescape(value).lower()
     text = re.sub(r"[^a-z0-9]+", "-", text)
     return text.strip("-")
+
+
+class _VisibleTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.skip_depth = 0
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "style", "noscript"}:
+            self.skip_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"script", "style", "noscript"} and self.skip_depth:
+            self.skip_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self.skip_depth and data.strip():
+            self.parts.append(data.strip())
 
 
 def _float_or_none(value: Any) -> float | None:
