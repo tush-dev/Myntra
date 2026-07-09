@@ -10,6 +10,11 @@ from dataclasses import dataclass
 
 from app.config import Settings
 
+try:
+    from curl_cffi import requests as curl_requests
+except Exception:  # pragma: no cover - optional fallback for minimal environments
+    curl_requests = None
+
 
 @dataclass
 class FetchResponse:
@@ -57,8 +62,10 @@ def fetch_text(url: str, settings: Settings) -> FetchResponse:
     for attempt in range(1, attempts + 1):
         if settings.request_delay:
             time.sleep(settings.request_delay + random.uniform(0, settings.jitter))
-        request = urllib.request.Request(url, headers=headers)
         try:
+            if curl_requests is not None:
+                return _fetch_with_curl_cffi(url, headers, settings, attempt)
+            request = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(request, timeout=settings.request_timeout) as response:
                 raw = response.read()
                 decoded = _decode_body(raw, response.headers.get("content-encoding"))
@@ -77,7 +84,15 @@ def fetch_text(url: str, settings: Settings) -> FetchResponse:
             last_error = FetchError(f"HTTP_{exc.code}", f"HTTP {exc.code} while fetching {url}", retryable, attempt)
             if not retryable or attempt >= attempts:
                 break
+        except FetchError as exc:
+            last_error = exc
+            if not exc.retryable or attempt >= attempts:
+                break
         except (urllib.error.URLError, TimeoutError) as exc:
+            last_error = FetchError("NETWORK_ERROR", str(exc), True, attempt)
+            if attempt >= attempts:
+                break
+        except Exception as exc:
             last_error = FetchError("NETWORK_ERROR", str(exc), True, attempt)
             if attempt >= attempts:
                 break
@@ -85,6 +100,28 @@ def fetch_text(url: str, settings: Settings) -> FetchResponse:
 
     assert last_error is not None
     raise last_error
+
+
+def _fetch_with_curl_cffi(url: str, headers: dict[str, str], settings: Settings, attempt: int) -> FetchResponse:
+    response = curl_requests.get(
+        url,
+        headers=headers,
+        timeout=settings.request_timeout,
+        impersonate="chrome",
+        allow_redirects=True,
+    )
+    if response.status_code >= 400:
+        retryable = response.status_code in TRANSIENT_STATUSES
+        raise FetchError(f"HTTP_{response.status_code}", f"HTTP {response.status_code} while fetching {url}", retryable, attempt)
+    return FetchResponse(
+        url=url,
+        final_url=response.url,
+        status=response.status_code,
+        content_type=response.headers.get("content-type"),
+        byte_count=len(response.content),
+        text=response.text,
+        attempts=attempt,
+    )
 
 
 def _decode_body(raw: bytes, content_encoding: str | None) -> bytes:
