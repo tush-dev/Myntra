@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: myntra-backend-tooling
+    env: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: MYNTRA_REQUEST_TIMEOUT
+        value: "20"
+      - key: MYNTRA_RETRY_COUNT
+        value: "2"
+      - key: MYNTRA_CONCURRENCY
+        value: "2"
+      - key: MYNTRA_REQUEST_DELAY
+        value: "0.25"
+      - key: MYNTRA_JITTER
+        value: "0.2"
+      - key: MYNTRA_HEADLESS
+        value: "true"
+      - key: MYNTRA_LOG_LEVEL
+        value: "INFO"
