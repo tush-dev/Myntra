@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def scrape_product(product_id: str, settings: Settings) -> ProductResult:
-    result = ProductResult(product_id=product_id, product_url=f"{MYNTRA_BASE_URL}/{product_id}")
+    result = ProductResult(product_id=product_id, product_url=_product_url(product_id))
     try:
         response = fetch_text(result.product_url, settings)
         result.product_url = response.final_url
@@ -129,3 +129,7 @@ def _page_type_error_code(page_type: str | None) -> str:
         "search": "SEARCH_PAGE_INSTEAD_OF_PRODUCT",
         "listing": "LISTING_PAGE_INSTEAD_OF_PRODUCT",
     }.get(page_type or "unknown", "UNKNOWN_NON_PRODUCT_PAGE")
+
+
+def _product_url(product_id: str) -> str:
+    return f"{MYNTRA_BASE_URL}/product/product/product/{product_id}/buy"
