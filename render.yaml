@@ -3,7 +3,7 @@ services:
     name: myntra-backend-tooling
     env: docker
     plan: free
-    region: oregon
+    region: singapore
     healthCheckPath: /health
     envVars:
       - key: MYNTRA_REQUEST_TIMEOUT
