@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -14,9 +14,12 @@ from app.services.batch_service import process_csv
 
 app = FastAPI(title="Myntra Product Scraper", version="1.0.0")
 
-frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
-if frontend_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
+INDEX_HTML = FRONTEND_DIR / "index.html"
+
+if FRONTEND_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
 @app.get("/health")
@@ -41,9 +44,7 @@ async def scrape(file: UploadFile = File(...), limit: int | None = None) -> JSON
 
 
 @app.get("/", response_class=HTMLResponse)
-def index() -> str:
-    index_path = frontend_dir / "index.html"
-    if not index_path.exists():
+def index():
+    if not INDEX_HTML.is_file():
         return "<h1>Myntra Product Scraper</h1><p>POST a CSV file to /scrape.</p>"
-    return index_path.read_text(encoding="utf-8")
-
+    return FileResponse(INDEX_HTML)
