@@ -17,6 +17,7 @@ The core works as both:
 - Sponsored result extraction from listing state using `plaProducts` entries with `isPLA == true`.
 - Bounded retry policy, request timeout, conservative concurrency, and per-product isolation.
 - Structured JSON output with `success`, `partial`, and `failed` statuses.
+- Optional delivery estimate checks for 5 major Indian cities (disabled by default).
 - Unit tests with local fixtures; live Myntra pages are not required for normal tests.
 
 ## Architecture
@@ -63,6 +64,16 @@ Quick validation run:
   --input "/Users/ashwin/Downloads/Products list (1).csv" \
   --output data/sample_output_small.json \
   --limit 5
+```
+
+Run with delivery estimates (optional bonus feature):
+
+```bash
+.venv/bin/python -m app.main \
+  --input "/Users/ashwin/Downloads/Products list (1).csv" \
+  --output data/sample_output_small.json \
+  --limit 1 \
+  --include-delivery
 ```
 
 Run the API and frontend:
@@ -126,6 +137,75 @@ Only products where `isPLA == true` are considered sponsored results. The tool r
 
 This is documented as Myntra’s public listing-state signal for product listing ads. If Myntra changes that state or removes PLA data, the result becomes an empty list with a warning rather than fabricated ads.
 
+## Delivery Estimate Bonus (Optional)
+
+An optional delivery-estimate feature checks estimated delivery availability for each product across 5 major Indian cities. It is **disabled by default** to avoid slowing down the core scraping pipeline.
+
+### Sample Pincodes
+
+| City | Pincode |
+|---|---|
+| Bengaluru | 560001 |
+| Mumbai | 400001 |
+| Delhi | 110001 |
+| Ahmedabad | 380001 |
+| Kolkata | 700001 |
+
+### Enabling Delivery Checks
+
+**CLI:**
+```bash
+python -m app.main --input data.csv --output out.json --include-delivery
+```
+
+**API:** Add `include_delivery=true` as a query parameter to `POST /scrape`.
+
+**Frontend:** Check the "Include delivery estimates" checkbox before running.
+
+**Environment variable:**
+```bash
+export MYNTRA_INCLUDE_DELIVERY=true
+```
+
+### Output Format
+
+Each product includes a `delivery_estimates` array (empty when disabled):
+
+```json
+{
+  "delivery_estimates": [
+    {
+      "city": "Bengaluru",
+      "pincode": "560001",
+      "status": "success",
+      "estimated_days": 3,
+      "estimated_date": null,
+      "message": null,
+      "errors": []
+    }
+  ]
+}
+```
+
+### Status Values
+
+- `success` — delivery information was retrieved
+- `unavailable` — delivery data could not be obtained (most common)
+- `failed` — an error occurred during the check
+
+### Error Codes
+
+- `DELIVERY_UNAVAILABLE` — API returned no delivery data
+- `DELIVERY_BLOCKED` — server returned 403 or anti-bot response
+- `DELIVERY_PARSE_FAILED` — response could not be parsed
+- `DELIVERY_TIMEOUT` — request timed out
+
+### Limitations
+
+Myntra's delivery estimate data is fetched via internal XHR calls on product pages. There is no publicly documented delivery API. The implementation makes a best-effort attempt to call a likely delivery endpoint. In most cases, this returns `unavailable` because Myntra's delivery APIs require session state or are rate-limited. This is expected behavior — the feature is designed to be resilient and never break core product extraction.
+
+When delivery checks fail, the product's overall status remains unchanged (`success` or `partial`). Delivery failures are recorded as warnings, not errors.
+
 ## Error Handling
 
 Every product produces a `ProductResult`. The batch does not crash on individual failures.
@@ -163,10 +243,10 @@ Statuses:
 - tests with local fixtures
 - Dockerfile and Compose file
 - full sample output from the provided CSV
+- optional delivery estimate bonus (disabled by default)
 
 ## Scope Out
 
-- Delivery estimate lookup. It is optional in the PDF, and core scraping reliability was prioritized.
 - Login, cookies, CAPTCHA handling, proxy rotation, or anti-bot bypass.
 - Persistent async job queue.
 - Playwright fallback. Current evidence showed raw public state was enough for the assignment fields.
@@ -178,6 +258,7 @@ Statuses:
 - Raw HTML did not include a literal visible `Ad` label; the tool uses the public PLA state flag.
 - Some numeric IDs in the provided file returned no usable product/category state and are reported as failed.
 - The simple in-memory category cache is per run only.
+- Delivery estimate checks are best-effort; Myntra has no public delivery API, so most results will be `unavailable`.
 
 ## What I Would Build Next
 
@@ -186,7 +267,6 @@ Statuses:
 - Add a background job model for large uploads.
 - Add selector/state monitoring for early warning when Myntra markup changes.
 - Add richer observability and structured JSON logs.
-- Add isolated optional delivery-estimate module.
 
 ## Testing
 
@@ -196,12 +276,12 @@ Normal tests do not hit Myntra:
 .venv/bin/python -m pytest -q
 ```
 
-Covered areas include CSV parsing, missing column handling, empty rows, malformed IDs, duplicate IDs, product parsing, missing product fields, sponsored ordering, first-3-only logic, no sponsored results, malformed HTML, batch continuation, and JSON serialization.
+Covered areas include CSV parsing, missing column handling, empty rows, malformed IDs, duplicate IDs, product parsing, missing product fields, sponsored ordering, first-3-only logic, no sponsored results, malformed HTML, batch continuation, JSON serialization, and delivery estimate features.
 
 Current result:
 
 ```text
-8 passed
+18 passed
 ```
 
 ## Sample Output

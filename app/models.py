@@ -33,6 +33,17 @@ class SponsoredResult:
 
 
 @dataclass
+class DeliveryEstimate:
+    city: str
+    pincode: str
+    status: str = "unavailable"
+    estimated_days: int | None = None
+    estimated_date: str | None = None
+    message: str | None = None
+    errors: list[ErrorDetail] = field(default_factory=list)
+
+
+@dataclass
 class ProductResult:
     product_id: str | None
     row_number: int | None = None
@@ -55,6 +66,7 @@ class ProductResult:
     html_title: str | None = None
     visible_text_preview: str | None = None
     category_ads: list[SponsoredResult] = field(default_factory=list)
+    delivery_estimates: list[DeliveryEstimate] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[ErrorDetail] = field(default_factory=list)
 

@@ -16,6 +16,10 @@
         <form id="upload-form">
           <input id="file" name="file" type="file" accept=".csv" required />
           <input id="limit" name="limit" type="number" min="1" placeholder="Limit" />
+          <label class="checkbox-label">
+            <input id="include-delivery" name="include-delivery" type="checkbox" />
+            Include delivery estimates
+          </label>
           <button type="submit">Run</button>
         </form>
       </section>
@@ -33,6 +37,7 @@
               <th>Rating</th>
               <th>Category</th>
               <th>Sponsored Results</th>
+              <th>Delivery</th>
               <th>Errors</th>
             </tr>
           </thead>

@@ -19,7 +19,12 @@ form.addEventListener("submit", async (event) => {
 
   const body = new FormData();
   body.append("file", file);
-  const url = limit ? `/scrape?limit=${encodeURIComponent(limit)}` : "/scrape";
+  const includeDelivery = document.querySelector("#include-delivery").checked;
+  const params = new URLSearchParams();
+  if (limit) params.set("limit", limit);
+  if (includeDelivery) params.set("include_delivery", "true");
+  const qs = params.toString();
+  const url = qs ? `/scrape?${qs}` : "/scrape";
 
   try {
     const response = await fetch(url, { method: "POST", body });
@@ -42,6 +47,7 @@ function render(result) {
     .map((product) => {
       const ads = (product.category_ads || []).map((ad) => `${ad.position}. ${ad.title || ""} (${ad.price || ""})`).join("<br>");
       const errors = (product.errors || []).map((err) => `${err.stage}: ${err.code}`).join("<br>");
+      const deliveries = (product.delivery_estimates || []).map((d) => `${d.city}: ${d.status}${d.estimated_days ? ` (${d.estimated_days}d)` : ""}`).join("<br>");
       return `<tr>
         <td>${product.row_number || ""}</td>
         <td>${escapeHtml(product.product_id || "")}</td>
@@ -50,6 +56,7 @@ function render(result) {
         <td>${product.rating ?? ""}</td>
         <td>${escapeHtml(product.category || "")}</td>
         <td>${ads}</td>
+        <td>${deliveries}</td>
         <td>${errors}</td>
       </tr>`;
     })

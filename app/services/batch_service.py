@@ -7,6 +7,7 @@ from pathlib import Path
 from app.config import Settings, settings as default_settings
 from app.models import BatchResult, BatchSummary, ErrorDetail, ProductInput, ProductResult, utc_now_iso
 from app.scrapers.category_scraper import scrape_category_ads
+from app.scrapers.delivery import check_delivery_for_product
 from app.scrapers.product_scraper import scrape_product
 from app.utils.csv_reader import read_product_csv
 
@@ -69,6 +70,13 @@ def _process_one(product: ProductInput, settings: Settings, category_cache: dict
         )
 
     result.status = _status_for(result)
+
+    if settings.include_delivery and result.status != "failed" and result.product_id:
+        try:
+            result.delivery_estimates = check_delivery_for_product(result.product_id, settings)
+        except Exception as exc:
+            result.warnings.append(f"Delivery check failed: {exc}")
+
     logger.info("product_end row=%s product_id=%s status=%s", product.row_number, product.product_id, result.status)
     return result
 

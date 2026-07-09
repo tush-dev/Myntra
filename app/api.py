@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -28,7 +29,7 @@ def health() -> dict[str, str]:
 
 
 @app.post("/scrape")
-async def scrape(file: UploadFile = File(...), limit: int | None = None) -> JSONResponse:
+async def scrape(file: UploadFile = File(...), limit: int | None = None, include_delivery: bool = False) -> JSONResponse:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Upload a CSV file.")
     content = await file.read()
@@ -36,7 +37,8 @@ async def scrape(file: UploadFile = File(...), limit: int | None = None) -> JSON
         handle.write(content)
         temp_path = Path(handle.name)
     try:
-        result = process_csv(temp_path, limit=limit, settings=settings)
+        run_settings = replace(settings, include_delivery=include_delivery)
+        result = process_csv(temp_path, limit=limit, settings=run_settings)
         result.source_file = file.filename
         return JSONResponse(json.loads(json.dumps(to_dict(result), ensure_ascii=False)))
     finally:

@@ -19,6 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--concurrency", type=int, default=settings.concurrency)
     parser.add_argument("--timeout", type=float, default=settings.request_timeout)
     parser.add_argument("--headless", action="store_true", default=settings.headless, help="Reserved for browser fallback.")
+    parser.add_argument("--include-delivery", action="store_true", default=settings.include_delivery, help="Check delivery estimates for 5 sample pincodes.")
     parser.add_argument("--debug", action="store_true")
     return parser
 
@@ -26,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     configure_logging("DEBUG" if args.debug else settings.log_level)
-    run_settings = replace(settings, concurrency=args.concurrency, request_timeout=args.timeout, headless=args.headless)
+    run_settings = replace(settings, concurrency=args.concurrency, request_timeout=args.timeout, headless=args.headless, include_delivery=args.include_delivery)
     result = process_csv(args.input, limit=args.limit, settings=run_settings)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
