@@ -1,0 +1,230 @@
+{
+  "generated_at": "2026-07-09T13:35:39.989004+00:00",
+  "source_file": "Products list (1).csv",
+  "summary": {
+    "total_rows": 5,
+    "unique_products": 5,
+    "duplicate_rows": 1,
+    "malformed_rows": 0,
+    "successful": 4,
+    "partial": 1,
+    "failed": 0
+  },
+  "products": [
+    {
+      "product_id": "35512522",
+      "row_number": 2,
+      "status": "success",
+      "product_url": "https://www.myntra.com/35512522",
+      "title": "EcoRight Eve Women Textured Crossbody Shoulder Bag",
+      "description": "Product Details: Coffee brown textured sling bag\n1 main compartment, has a zip closure, 2 inner pockets\nWith a detachable sling strap\nWarranty: 6 months\nWarranty provided by brand owner/manufacturer\nMATERIAL & CARE: Made with 100% Natural Cotton & finished with a recycled PU strap & base\nMachine wash or handwash gently with like colours\nUse cold water and a mild detergent\nAvoid hot water or harsh chemical\nAir dry only do not tumble dry\nSIZE & FIT: Width = 34.29 cm\nHeight = 21.59 cm\nDepth = 13.97 cm",
+      "images": [
+        "https://assets.myntassets.com/assets/images/2026/JULY/7/gDRYysJi_2ab1f01199b745e3b46dedcaa4b6eb41.jpg",
+        "https://assets.myntassets.com/assets/images/2026/JULY/7/ZjsQlV6x_08d567e2c5304902b46a569c0b84cdb5.jpg"
+      ],
+      "rating": 4.517045454545454,
+      "total_ratings_count": 176,
+      "category": "Handbags",
+      "category_raw": "Handbags",
+      "category_url": "https://www.myntra.com/handbags",
+      "category_ads": [
+        {
+          "position": 1,
+          "title": "IRTH by House of Titan Solid Baguette Shoulder Bag",
+          "rating": 4.666666507720947,
+          "price": 2336,
+          "url": "https://www.myntra.com/Handbags/IRTH+by+House+of+Titan/IRTH-by-House-of-Titan-Solid-Baguette-Shoulder-Bag/36630587/buy"
+        },
+        {
+          "position": 2,
+          "title": "IRTH by House of Titan Baguette Shoulder Bag",
+          "rating": 4.7578125,
+          "price": 1794,
+          "url": "https://www.myntra.com/Handbags/IRTH+by+House+of+Titan/IRTH-by-House-of-Titan-Baguette-Shoulder-Bag/36630576/buy"
+        },
+        {
+          "position": 3,
+          "title": "MIRAGGIO Mila Green Shoulder Clutch with Chain Detailing",
+          "rating": 4.671658992767334,
+          "price": 1989,
+          "url": "https://www.myntra.com/Handbags/MIRAGGIO/MIRAGGIO-Mila-Green-Shoulder-Clutch-with-Chain-Detailing/16833700/buy"
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "product_id": "31786093",
+      "row_number": 3,
+      "status": "success",
+      "product_url": "https://www.myntra.com/31786093",
+      "title": "SUPERVEK Unisex Solid Pure Cotton Bucket Hat with Embroidered Detail",
+      "description": "Product Details: Black solid bucket hat with thunder bolt embroidered detail\nMATERIAL & CARE: 100% Cotton\nHandwash\nSIZE & FIT: Circumference: 53.3 cm",
+      "images": [
+        "https://assets.myntassets.com/assets/images/31786093/2025/5/20/50e8959d-2c4d-47ea-b70b-9fd6e07c9aec1747741025365-SUPERVEK-Unisex-Solid-Pure-Cotton-Bucket-Hat-with-Embroidere-1.jpg",
+        "https://assets.myntassets.com/assets/images/31786093/2025/5/20/5aa05680-4cf2-4aa2-a18a-8dfe35eb8dec1747741025335-SUPERVEK-Unisex-Solid-Pure-Cotton-Bucket-Hat-with-Embroidere-2.jpg"
+      ],
+      "rating": 4.064935064935065,
+      "total_ratings_count": 77,
+      "category": "Hat",
+      "category_raw": "Hat",
+      "category_url": "https://www.myntra.com/hat",
+      "category_ads": [
+        {
+          "position": 1,
+          "title": "ToniQ Women Navy Stripe Summer Beach Sun Visor Hat",
+          "rating": 4.445302486419678,
+          "price": 1000,
+          "url": "https://www.myntra.com/Hat/ToniQ/ToniQ-Women-Navy-Stripe-Summer-Beach-Sun-Visor-Hat/30371965/buy"
+        },
+        {
+          "position": 2,
+          "title": "ToniQ Pink Straw Sun Visor Summer Vacation Beach Hats for Women",
+          "rating": 4.445302486419678,
+          "price": 975,
+          "url": "https://www.myntra.com/Hat/ToniQ/ToniQ-Pink-Straw-Sun-Visor-Summer-Vacation-Beach-Hats-for-Women/21684078/buy"
+        },
+        {
+          "position": 3,
+          "title": "Stoln Women Khaki Solid Sun Hat",
+          "rating": 0.0,
+          "price": 890,
+          "url": "https://www.myntra.com/Hat/Stoln/Stoln-Women-Khaki-Solid-Sun-Hat/42499148/buy"
+        }
+      ],
+      "warnings": [
+        "Duplicate product_id row in input CSV."
+      ],
+      "errors": []
+    },
+    {
+      "product_id": "37403577",
+      "row_number": 4,
+      "status": "success",
+      "product_url": "https://www.myntra.com/37403577",
+      "title": "EcoRight Women Pack of 2 Mooving Hearts Printed Ankle Length Socks",
+      "description": "Product Details: Pack Of 2 socks\nA pair of pink printed ankle length socks, each has a ribbed mouth and flat toe seam\nA pair of black printed ankle length socks, each has a ribbed mouth and flat toe seam\nMATERIAL & CARE: Cotton\nWash your socks inside out\nWash in a machine or handwash with like colours\nAvoid bleach Cold water, mild detergent and delicate cycle Air dry or tumble dry\nPlease read the wash care label for more details",
+      "images": [
+        "https://assets.myntassets.com/assets/images/2026/MAY/25/dDrrHuZb_8a27f330c7ab4a12a76f676c071608d4.jpg",
+        "https://assets.myntassets.com/assets/images/2026/MAY/25/AizBL7Po_21c15e8afc6f4373ab1b5130697b21e8.jpg"
+      ],
+      "rating": 4.571428571428571,
+      "total_ratings_count": 7,
+      "category": "Socks",
+      "category_raw": "Socks",
+      "category_url": "https://www.myntra.com/socks",
+      "category_ads": [
+        {
+          "position": 1,
+          "title": "Jockey Pack of 3 Compact Cotton Terry Ankle Length Socks With StayFresh Treatment-7036",
+          "rating": 4.499422073364258,
+          "price": 469,
+          "url": "https://www.myntra.com/Socks/Jockey/Jockey-Pack-of-3-Compact-Cotton-Terry-Ankle-Length-Socks-With-StayFresh-Treatment-7036/18944314/buy"
+        },
+        {
+          "position": 2,
+          "title": "Jockey Pack of 3 Compact Cotton Terry Ankle Length Socks With StayFresh Treatment-7036",
+          "rating": 4.513274192810059,
+          "price": 469,
+          "url": "https://www.myntra.com/Socks/Jockey/Jockey-Pack-of-3-Compact-Cotton-Terry-Ankle-Length-Socks-With-StayFresh-Treatment-7036/18946400/buy"
+        },
+        {
+          "position": 3,
+          "title": "Jockey Pack of 2 Compact Cotton Ankle Length Socks with StayFresh Treatment-7002",
+          "rating": 4.40625,
+          "price": 289,
+          "url": "https://www.myntra.com/Socks/Jockey/Jockey-Pack-of-2-Compact-Cotton-Ankle-Length-Socks-with-StayFresh-Treatment-7002/32867214/buy"
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "product_id": "27356632",
+      "row_number": 5,
+      "status": "success",
+      "product_url": "https://www.myntra.com/27356632",
+      "title": "SUPERVEK Unisex Travel Cross Body Sling Bag",
+      "description": "Product Details: Black Solid Messenger Bag Water-Resistant Fabric. 1 Main Compartment Inner Zip Pocket 1 Front Molle Webbing  Comes with A Detachable On-The-Fly Adjustable Strap\nSIZE & FIT: Length-20CM, width-16CM, Height-5CM, Unit weight-150GRAMS\nMATERIAL & CARE: Polyester\nWipe with a clean, dry cloth to remove dust",
+      "images": [
+        "https://assets.myntassets.com/assets/images/2025/DECEMBER/1/sz8w39dv_202f170cd20c484e95da58865da82f68.jpg",
+        "https://assets.myntassets.com/assets/images/2025/DECEMBER/1/Wq0zyZft_653741e316a747278ddaa19988c898c1.jpg"
+      ],
+      "rating": 4.38562091503268,
+      "total_ratings_count": 1530,
+      "category": "Messenger Bag",
+      "category_raw": "Messenger Bag",
+      "category_url": "https://www.myntra.com/messenger-bag",
+      "category_ads": [
+        {
+          "position": 1,
+          "title": "MOKOBARA Unisex The Aisle Crossbody Aerology Nylon Fabric Casual & Travel",
+          "rating": 4.777777671813965,
+          "price": 1299,
+          "url": "https://www.myntra.com/Messenger-Bag/MOKOBARA/MOKOBARA-Unisex-The-Aisle-Crossbody-Aerology-Nylon-Fabric-Casual--Travel/35949909/buy"
+        },
+        {
+          "position": 2,
+          "title": "MOKOBARA Unisex The Aisle Crossbody Aerology Nylon Fabric Casual & Travel",
+          "rating": 4.650000095367432,
+          "price": 1299,
+          "url": "https://www.myntra.com/Messenger-Bag/MOKOBARA/MOKOBARA-Unisex-The-Aisle-Crossbody-Aerology-Nylon-Fabric-Casual--Travel/35949906/buy"
+        },
+        {
+          "position": 3,
+          "title": "Police Men Colourblocked Leather Messenger Bag",
+          "rating": 4.431818008422852,
+          "price": 1449,
+          "url": "https://www.myntra.com/Messenger-Bag/Police/Police-Men-Colourblocked-Leather-Messenger-Bag/28327370/buy"
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "product_id": "40802669",
+      "row_number": 6,
+      "status": "partial",
+      "product_url": "https://www.myntra.com/40802669",
+      "title": "MR BUTTON Men Printed Boxy T-shirt",
+      "description": "Product Details: Pink Tshirt for Men Solid Printed Regular length Round Neck Short, Knitted and Woven Cotton fabric\nMATERIAL & CARE: Machine wash\nSIZE & FIT: Boxy \nThe model (height 6') is wearing a size M",
+      "images": [
+        "https://assets.myntassets.com/assets/images/2026/MARCH/27/BOrUZ0IA_a612433cc7964db386ec9ae59d78f6e7.jpg",
+        "https://assets.myntassets.com/assets/images/2026/MARCH/27/6ktjeEn9_fd2a783c93d44dfd9b3e9e9e761b9cc4.jpg"
+      ],
+      "rating": null,
+      "total_ratings_count": null,
+      "category": "Tshirts",
+      "category_raw": "Tshirts",
+      "category_url": "https://www.myntra.com/tshirts",
+      "category_ads": [
+        {
+          "position": 1,
+          "title": "Jockey Super Combed Cotton Rich Round Neck Half Sleeve Tshirt-2714",
+          "rating": 4.428402900695801,
+          "price": 599,
+          "url": "https://www.myntra.com/Tshirts/Jockey/Jockey-Super-Combed-Cotton-Rich-Round-Neck-Half-Sleeve-Tshirt-2714/33169301/buy"
+        },
+        {
+          "position": 2,
+          "title": "Jockey Combed Cotton Rich Round Neck Half Sleeve Tshirt-2714",
+          "rating": 4.427042484283447,
+          "price": 599,
+          "url": "https://www.myntra.com/Tshirts/Jockey/Jockey-Combed-Cotton-Rich-Round-Neck-Half-Sleeve-Tshirt-2714/11444004/buy"
+        },
+        {
+          "position": 3,
+          "title": "Jockey Super Combed Cotton Rich Round Neck Half Sleeve Tshirt-2714",
+          "rating": 4.480821132659912,
+          "price": 599,
+          "url": "https://www.myntra.com/Tshirts/Jockey/Jockey-Super-Combed-Cotton-Rich-Round-Neck-Half-Sleeve-Tshirt-2714/33169311/buy"
+        }
+      ],
+      "warnings": [
+        "Missing rating.",
+        "Missing total_ratings_count."
+      ],
+      "errors": []
+    }
+  ]
+}

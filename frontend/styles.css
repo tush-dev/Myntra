@@ -1,0 +1,151 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #24222a;
+  background: #f7f7f8;
+}
+
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 18px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+p {
+  margin: 0;
+  color: #66616c;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+input,
+button {
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d5d2da;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+button {
+  cursor: pointer;
+  border-color: #ff3f6c;
+  background: #ff3f6c;
+  color: white;
+  font-weight: 700;
+}
+
+.state,
+.summary {
+  margin: 14px 0;
+  color: #4f4a55;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.metric {
+  padding: 10px;
+  border: 1px solid #ddd9e2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.metric strong {
+  display: block;
+  font-size: 20px;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #ddd9e2;
+  border-radius: 8px;
+  background: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+th,
+td {
+  padding: 10px;
+  border-bottom: 1px solid #ece9ef;
+  text-align: left;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+th {
+  background: #faf9fb;
+  font-weight: 700;
+}
+
+.status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.success {
+  background: #e7f7ed;
+  color: #166534;
+}
+
+.partial {
+  background: #fff4db;
+  color: #8a5a00;
+}
+
+.failed {
+  background: #fde8ea;
+  color: #a3192f;
+}
+
+.download {
+  display: inline-block;
+  margin-top: 16px;
+  color: #ff3f6c;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  form {
+    justify-content: stretch;
+  }
+}
+

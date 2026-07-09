@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Myntra Product Scraper</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="toolbar">
+        <div>
+          <h1>Myntra Product Scraper</h1>
+          <p>Upload a CSV with a <code>product_id</code> column and download structured JSON results.</p>
+        </div>
+        <form id="upload-form">
+          <input id="file" name="file" type="file" accept=".csv" required />
+          <input id="limit" name="limit" type="number" min="1" placeholder="Limit" />
+          <button type="submit">Run</button>
+        </form>
+      </section>
+
+      <section id="state" class="state">Ready.</section>
+      <section id="summary" class="summary"></section>
+      <section class="table-wrap">
+        <table id="results">
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>Product ID</th>
+              <th>Status</th>
+              <th>Title</th>
+              <th>Rating</th>
+              <th>Category</th>
+              <th>Sponsored Results</th>
+              <th>Errors</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+      <a id="download" class="download" hidden>Download JSON</a>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
+
