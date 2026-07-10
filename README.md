@@ -1,53 +1,50 @@
 # Myntra Backend / Tooling Assignment
 
-## Overview
+Python tooling and a FastAPI app for the Myntra backend assignment. The tool accepts a CSV with a `product_id` column, fetches public Myntra product pages, extracts structured product data, resolves the product category, and returns up to the first 3 sponsored listing results available in Myntra's public listing state.
 
-This repository contains a Python tool that accepts a CSV with Myntra `product_id` values, fetches public Myntra product pages, extracts structured product data, resolves each product category, and returns the first 3 sponsored/Ad-style listing results for that category.
+## Current Status
 
-The core works as both:
+- The CLI, FastAPI app, frontend, Docker setup, and tests are implemented.
+- Local scraping and Docker-based scraping have worked for the tested product IDs in this environment.
+- The Render-hosted app deploys and serves the frontend successfully, but outbound product requests from the current Render service have been observed returning Myntra `Site Maintenance` HTML instead of product pages. Hosted live extraction may therefore fail even when local/Docker extraction works. This is an observed environment-specific upstream response, not a claim that all Render IPs are blocked.
 
-- a CLI: `python -m app.main --input ... --output ...`
-- a FastAPI backend with a small upload/results frontend.
+## Quick Start
 
-## Features
+Docker:
 
-- CSV validation for `product_id`, empty rows, malformed IDs, and duplicate rows.
-- Product ID resolution via public `https://www.myntra.com/{product_id}` pages.
-- Extraction of title, description, images, rating, ratings count, category, and category URL.
-- Sponsored result extraction from listing state using `plaProducts` entries with `isPLA == true`.
-- Bounded retry policy, request timeout, conservative concurrency, and per-product isolation.
-- Structured JSON output with `success`, `partial`, and `failed` statuses.
-- Optional delivery estimate checks for 5 major Indian cities (disabled by default).
-- Unit tests with local fixtures; live Myntra pages are not required for normal tests.
+```bash
+docker compose up --build
+```
 
-## Architecture
+Open:
 
-Data flow:
+```text
+http://localhost:8000
+```
 
-1. `app/utils/csv_reader.py` validates CSV rows into `ProductInput`.
-2. `app/scrapers/product_scraper.py` fetches `https://www.myntra.com/{product_id}`.
-3. `app/scrapers/parsers.py` extracts `window.__myx.pdpData` and JSON-LD breadcrumbs.
-4. `app/scrapers/category_scraper.py` fetches the resolved category page.
-5. `app/services/batch_service.py` coordinates the batch, caches category results, and builds the final `BatchResult`.
+Useful routes:
 
-The code intentionally uses the standard library for the scraping core. FastAPI is only needed for the API/frontend layer.
+- `GET /` - frontend
+- `GET /health` - health check
+- `POST /scrape` - CSV upload API
+- `GET /docs` - FastAPI Swagger UI
+- `GET /openapi.json` - OpenAPI schema
 
-## How To Run
+The Dockerfile exposes port `8000`, and `docker-compose.yml` maps `8000:8000`.
 
-Create a virtual environment and install dependencies:
+## Local Setup
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn app.api:app --reload --port 8000
 ```
 
-Run tests:
+Then open `http://localhost:8000`.
 
-```bash
-.venv/bin/python -m pytest -q
-```
+## CLI Usage
 
-Run the CLI on the provided CSV:
+Run the CLI against the provided CSV:
 
 ```bash
 .venv/bin/python -m app.main \
@@ -57,7 +54,7 @@ Run the CLI on the provided CSV:
   --timeout 20
 ```
 
-Quick validation run:
+Small validation run:
 
 ```bash
 .venv/bin/python -m app.main \
@@ -66,110 +63,157 @@ Quick validation run:
   --limit 5
 ```
 
-Run with delivery estimates (optional bonus feature):
+Supported CLI flags:
 
-```bash
-.venv/bin/python -m app.main \
-  --input "/Users/ashwin/Downloads/Products list (1).csv" \
-  --output data/sample_output_small.json \
-  --limit 1 \
-  --include-delivery
+```text
+--input
+--output
+--limit
+--concurrency
+--timeout
+--headless
+--include-delivery
+--debug
 ```
 
-Run the API and frontend:
+`--headless` is reserved for a browser fallback. A Playwright fallback is not currently implemented.
 
-```bash
-.venv/bin/uvicorn app.api:app --reload --port 8000
+## API And Frontend
+
+`POST /scrape` accepts multipart form data with a CSV file named `file`.
+
+Optional query parameters:
+
+- `limit` - process only the first N valid product rows.
+- `include_delivery=true` - enable optional delivery checks.
+
+The existing frontend in `frontend/` is served by FastAPI:
+
+- `frontend/index.html` at `/`
+- `frontend/styles.css` at `/static/styles.css`
+- `frontend/app.js` at `/static/app.js`
+
+The frontend uses same-origin API calls to `/scrape`.
+
+## Architecture
+
+```text
+app/
+  api.py                    FastAPI app and frontend/static serving
+  cli.py                    CLI argument parsing
+  main.py                   CLI entry point
+  config.py                 Runtime settings and environment variables
+  models.py                 Dataclasses for JSON output
+  services/batch_service.py Batch orchestration and per-product isolation
+  scrapers/product_scraper.py
+  scrapers/category_scraper.py
+  scrapers/delivery.py
+  scrapers/parsers.py
+  utils/csv_reader.py
+  utils/retry.py
+frontend/
+  index.html
+  app.js
+  styles.css
+data/
+  sample_output.json
+  sample_output_small.json
+tests/
 ```
 
-Then open `http://localhost:8000`, upload a CSV, and download the JSON result.
+Workflow:
 
-Docker:
+1. Read and validate CSV rows from `product_id`.
+2. Resolve each product ID to a public Myntra product URL.
+3. Fetch the product page with bounded retries and conservative delays.
+4. Parse embedded public page state and JSON-LD for product fields.
+5. Resolve a public category/listing URL from breadcrumbs, cross-links, or product analytics.
+6. Fetch the category page.
+7. Return the first 3 sponsored listing products from `searchData.results.plaProducts` where `isPLA == true`.
+8. Build structured JSON for every input row, including partial and failed rows.
 
-```bash
-docker compose up --build
-```
+## Approach And Rationale
 
-## Approach
+The assignment asks for public Myntra product extraction, first 3 explicitly Ad-marked sponsored category results, robust failures, structured JSON, a README, and sample output. The optional delivery check is treated as a bonus and is disabled by default.
 
-I inspected the provided PDF and CSV before implementing. The PDF is a 3-page backend/tooling assignment asking for public Myntra product extraction, first 3 Ad-marked sponsored category results, robust error handling, structured output, a README, and a sample output. The delivery-estimate feature is explicitly optional.
-
-CSV inspection:
+Input findings from `Products list (1).csv`:
 
 - Columns: `product_id`
 - Data rows: 100
-- Unique non-empty product IDs: 84
+- Valid numeric product IDs: 100
+- Unique product IDs: 84
 - Empty rows: 0
 - Malformed rows: 0
-- Duplicate ID values: 11 values, covering 27 duplicate rows
+- Duplicate ID values: 11 values, involving 27 rows
 
-Live Myntra investigation on real IDs showed:
+Product resolution:
 
-- Direct URLs like `https://www.myntra.com/35512522` return product pages.
-- Useful product data is present in raw HTML.
-- Product pages contain `window.__myx.pdpData` with name, product details, media, and ratings.
-- JSON-LD provides product fallback data and breadcrumbs.
-- Category/listing pages contain `window.__myx.searchData.results`.
-- Listing state includes `plaProducts`; each product has `isPLA: true`.
-- Raw HTML did not expose a reliable literal `Ad` text marker in the downloaded source. The public state used to render product listing ads is the reliable source available without browser automation.
+- Product pages are requested as `https://www.myntra.com/product/product/product/{product_id}/buy`.
+- The final redirected URL is stored in each result as `product_url` when the fetch succeeds.
 
-Because of those findings, the implementation uses HTTP + embedded JSON parsing instead of Playwright. This keeps the tool faster, easier to test, and less fragile than browser-only scraping.
+HTTP fetching:
 
-## Product Resolution
+- `app/utils/retry.py` uses `curl_cffi` with Chrome impersonation when available.
+- It falls back to Python's standard `urllib` path if `curl_cffi` is unavailable.
+- Retries are bounded and only transient status/network failures are retried.
 
-Product IDs are resolved as:
+Parsing strategy:
 
-```text
-https://www.myntra.com/{product_id}
-```
+- Product data is parsed from public embedded `window.__myx.pdpData` where available.
+- JSON-LD product and breadcrumb data is used as fallback.
+- Category URL resolution checks JSON-LD breadcrumbs first, then PDP cross-links, then a derived article-type slug when present.
+- The parser records compact diagnostics such as page type, HTTP status, response bytes, title, and a short visible-text preview.
 
-For sampled real IDs, this returned the relevant public product page without needing a slug. The final response URL is stored as `product_url`. If a page does not expose usable product state, the row is marked failed or partial with structured errors.
+Sponsored results:
 
-## Sponsored Result Detection
+- Category pages are parsed from `window.__myx.searchData.results.plaProducts`.
+- Only entries with `isPLA == true` are returned.
+- The tool returns at most 3 sponsored results and does not substitute organic results.
+- If Myntra does not expose sponsored listing data, the product remains `partial` with a warning or structured category/sponsored error.
 
-For the resolved category page, the scraper parses:
+Per-product isolation:
 
-```text
-window.__myx.searchData.results.plaProducts
-```
+- A bad product, missing field, category failure, or sponsored extraction failure does not crash the batch.
+- Every row receives a structured result.
 
-Only products where `isPLA == true` are considered sponsored results. The tool returns the first 3 in `plaProducts` order and never pads with organic `products`.
+## Output Statuses
 
-This is documented as Myntra’s public listing-state signal for product listing ads. If Myntra changes that state or removes PLA data, the result becomes an empty list with a warning rather than fabricated ads.
+- `success` - meaningful product data was extracted and category sponsored extraction completed without category/sponsored errors.
+- `partial` - product data was extracted, but one or more fields, category URL, sponsored results, or optional steps were missing or unavailable.
+- `failed` - no useful product data could be resolved or extracted.
 
-## Delivery Estimate Bonus (Optional)
+Product detail extraction and category/sponsored extraction are separate stages. Category or sponsored failures do not erase product fields.
 
-An optional delivery-estimate feature checks estimated delivery availability for each product across 5 major Indian cities. It is **disabled by default** to avoid slowing down the core scraping pipeline.
+## Optional Delivery Bonus
 
-### Sample Pincodes
+Delivery checks are implemented as an optional, best-effort feature and are disabled by default.
+
+Sample pincodes:
 
 | City | Pincode |
-|---|---|
+| --- | --- |
 | Bengaluru | 560001 |
 | Mumbai | 400001 |
 | Delhi | 110001 |
 | Ahmedabad | 380001 |
 | Kolkata | 700001 |
 
-### Enabling Delivery Checks
+Enable delivery from the CLI:
 
-**CLI:**
 ```bash
-python -m app.main --input data.csv --output out.json --include-delivery
+.venv/bin/python -m app.main \
+  --input "/Users/ashwin/Downloads/Products list (1).csv" \
+  --output data/sample_output_with_delivery.json \
+  --limit 1 \
+  --include-delivery
 ```
 
-**API:** Add `include_delivery=true` as a query parameter to `POST /scrape`.
+Enable delivery from the API/frontend:
 
-**Frontend:** Check the "Include delivery estimates" checkbox before running.
+- API: add `include_delivery=true` to `POST /scrape`.
+- Frontend: check "Include delivery estimates".
 
-**Environment variable:**
-```bash
-export MYNTRA_INCLUDE_DELIVERY=true
-```
-
-### Output Format
-
-Each product includes a `delivery_estimates` array (empty when disabled):
+Delivery output shape:
 
 ```json
 {
@@ -177,8 +221,8 @@ Each product includes a `delivery_estimates` array (empty when disabled):
     {
       "city": "Bengaluru",
       "pincode": "560001",
-      "status": "success",
-      "estimated_days": 3,
+      "status": "success/unavailable/failed",
+      "estimated_days": null,
       "estimated_date": null,
       "message": null,
       "errors": []
@@ -187,111 +231,77 @@ Each product includes a `delivery_estimates` array (empty when disabled):
 }
 ```
 
-### Status Values
+Actual behavior:
 
-- `success` — delivery information was retrieved
-- `unavailable` — delivery data could not be obtained (most common)
-- `failed` — an error occurred during the check
+- Myntra does not provide a documented public delivery-estimate API.
+- `app/scrapers/delivery.py` makes a best-effort public request for each sample pincode.
+- Most delivery checks should be expected to return `unavailable`.
+- Delivery failures do not change an otherwise `success` or `partial` product to `failed`.
 
-### Error Codes
+Delivery error codes:
 
-- `DELIVERY_UNAVAILABLE` — API returned no delivery data
-- `DELIVERY_BLOCKED` — server returned 403 or anti-bot response
-- `DELIVERY_PARSE_FAILED` — response could not be parsed
-- `DELIVERY_TIMEOUT` — request timed out
-
-### Limitations
-
-Myntra's delivery estimate data is fetched via internal XHR calls on product pages. There is no publicly documented delivery API. The implementation makes a best-effort attempt to call a likely delivery endpoint. In most cases, this returns `unavailable` because Myntra's delivery APIs require session state or are rate-limited. This is expected behavior — the feature is designed to be resilient and never break core product extraction.
-
-When delivery checks fail, the product's overall status remains unchanged (`success` or `partial`). Delivery failures are recorded as warnings, not errors.
-
-## Error Handling
-
-Every product produces a `ProductResult`. The batch does not crash on individual failures.
-
-Implemented handling includes:
-
-- missing or malformed CSV values
-- duplicate rows
-- fetch failures and transient HTTP status retries
-- missing product fields
-- unavailable/unparseable product state
-- missing category URL
-- category fetch or sponsored parse errors
-
-Statuses:
-
-- `success`: core fields are present and category sponsored extraction completed.
-- `partial`: useful data was extracted but one or more fields or steps are missing.
-- `failed`: no meaningful product data could be resolved or processed.
+- `DELIVERY_UNAVAILABLE`
+- `DELIVERY_BLOCKED`
+- `DELIVERY_PARSE_FAILED`
+- `DELIVERY_TIMEOUT`
 
 ## Assumptions
 
-- Public `window.__myx` page state is acceptable because it is embedded in the public HTML used to render Myntra pages.
-- `plaProducts` + `isPLA == true` is the public sponsored/Ad signal in listing state.
-- The third breadcrumb item is the product taxonomy category; later breadcrumb items are commonly brand links.
-- Rating can be null for unrated products and should not be replaced with `0`.
+- Only public Myntra pages and public page state are in scope.
+- No login, personal cookies, private credentials, proxy rotation, CAPTCHA bypass, or auth bypass is used.
+- Missing product fields are normal and should be represented as `null`, empty arrays, warnings, or structured errors.
+- Sponsored results can vary by time, session, category, location, and upstream page state.
+- `plaProducts` with `isPLA == true` is treated as Myntra's public sponsored listing signal.
+- Unrated products can have `rating` and `total_ratings_count` as `null`.
 
-## Scope In
+## Scope
 
-- CLI
-- FastAPI API
-- simple hosted frontend served by FastAPI
-- JSON output
-- structured errors and warnings
-- tests with local fixtures
-- Dockerfile and Compose file
-- full sample output from the provided CSV
-- optional delivery estimate bonus (disabled by default)
+Implemented:
 
-## Scope Out
+- CSV `product_id` ingestion and validation.
+- CLI.
+- FastAPI backend.
+- Existing static frontend served by FastAPI.
+- Docker and Render Blueprint configuration.
+- Product URL resolution.
+- Product field extraction.
+- Category URL resolution.
+- First 3 public sponsored/PLA results only.
+- Structured JSON output.
+- Per-product failure isolation.
+- Optional delivery-estimate checks.
+- Unit tests with local fixtures.
 
-- Login, cookies, CAPTCHA handling, proxy rotation, or anti-bot bypass.
-- Persistent async job queue.
-- Playwright fallback. Current evidence showed raw public state was enough for the assignment fields.
+Partially implemented:
+
+- Delivery estimates: best-effort only, usually `unavailable`.
+- Hosted Render scraping: app deploys, but current Render outbound product fetches receive Myntra `Site Maintenance` content.
+
+Intentionally not implemented:
+
+- Playwright/browser fallback.
+- Login or private session handling.
+- CAPTCHA solving, proxy rotation, or block bypass.
+- Persistent job queue or database.
+- Fabricating sponsored results when public sponsored data is absent.
 
 ## Known Limitations
 
-- Myntra can change `window.__myx` or listing state fields.
-- Sponsored results may vary by region, time, campaign availability, or request context.
-- Raw HTML did not include a literal visible `Ad` label; the tool uses the public PLA state flag.
-- Some numeric IDs in the provided file returned no usable product/category state and are reported as failed.
-- The simple in-memory category cache is per run only.
-- Delivery estimate checks are best-effort; Myntra has no public delivery API, so most results will be `unavailable`.
-
-## What I Would Build Next
-
-- Add a Playwright fallback only for categories where public state disappears.
-- Persist category/product fetch cache with TTL.
-- Add a background job model for large uploads.
-- Add selector/state monitoring for early warning when Myntra markup changes.
-- Add richer observability and structured JSON logs.
-
-## Testing
-
-Normal tests do not hit Myntra:
-
-```bash
-.venv/bin/python -m pytest -q
-```
-
-Covered areas include CSV parsing, missing column handling, empty rows, malformed IDs, duplicate IDs, product parsing, missing product fields, sponsored ordering, first-3-only logic, no sponsored results, malformed HTML, batch continuation, JSON serialization, and delivery estimate features.
-
-Current result:
-
-```text
-18 passed
-```
+- Hosted extraction on the current Render service may fail because Myntra returns `Site Maintenance` HTML for outbound product requests from that environment.
+- Myntra can change `window.__myx`, JSON-LD, or listing state fields.
+- The downloaded listing HTML did not expose a reliable literal visible `Ad` label; this implementation uses the public `plaProducts` / `isPLA` listing-state signal and never pads with organic products.
+- Sponsored results may be absent, fewer than 3, or vary by request context.
+- Delivery estimates are optional and commonly unavailable because there is no documented public delivery endpoint.
+- Category caching is in-memory and scoped to one run.
 
 ## Sample Output
 
-Generated files:
+Checked-in sample files generated from the provided product IDs:
 
-- `data/sample_output_small.json`: first 5 valid rows.
-- `data/sample_output.json`: full provided CSV.
+- `data/sample_output_small.json` - first 5 valid rows.
+- `data/sample_output.json` - full provided CSV.
 
-Full run summary:
+Current checked-in full sample summary:
 
 ```json
 {
@@ -305,9 +315,44 @@ Full run summary:
 }
 ```
 
-The 4 failed rows are preserved with structured errors rather than fabricated data.
+The sample files were generated with delivery disabled. New runs with the current model include `delivery_estimates` in each product result; it is empty unless delivery is enabled.
 
-## Ethical / Operational Considerations
+## Testing
 
-This tool uses only public Myntra pages and public page state. It does not use credentials, private APIs, cookies, proxy rotation, CAPTCHA solving, or aggressive bypass techniques. Defaults are intentionally conservative: low concurrency, bounded retries, timeouts, and small request delay/jitter.
+Run:
 
+```bash
+.venv/bin/python -m pytest -q
+```
+
+The tests use local fixtures rather than live Myntra requests. Covered areas include CSV validation, duplicate handling, product parsing, missing fields, sponsored ordering, first-3-only sponsored results, malformed HTML, batch continuation, status semantics, JSON serialization, and delivery behavior.
+
+Current result:
+
+```text
+18 passed
+```
+
+## Deployment
+
+Render is configured as a Blueprint using `render.yaml`.
+
+- Service type: web
+- Runtime: Docker
+- Health check: `/health`
+- Port: Render supplies `PORT`; Docker defaults to `8000`
+- Start command from Dockerfile: `uvicorn app.api:app --host 0.0.0.0 --port ${PORT:-8000}`
+
+The deployed app can serve the frontend and API. Live scraping from the hosted service is limited by the observed Myntra `Site Maintenance` upstream response described above.
+
+## Ethical And Operational Notes
+
+This tool uses public pages and conservative requests only. It does not use credentials, private APIs, personal browser cookies, proxy rotation, CAPTCHA solving, auth bypass, or aggressive anti-bot techniques. Failures are recorded and processing continues.
+
+## What I Would Build Next
+
+1. Add a narrowly scoped Playwright fallback only for cases where verified public product data is present after browser rendering but absent in raw HTML.
+2. Add persisted product/category fetch caching with TTL to reduce repeated upstream requests.
+3. Add a background job model for larger uploads and progress polling.
+4. Add structured production log export for fetch classification, page type, and category resolution diagnostics.
+5. Add scheduled fixture refresh checks to detect Myntra page-state changes early.
