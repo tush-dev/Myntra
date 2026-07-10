@@ -14,8 +14,14 @@
           <p>Upload a CSV with a <code>product_id</code> column and download structured JSON results.</p>
         </div>
         <form id="upload-form">
-          <input id="file" name="file" type="file" accept=".csv" required />
-          <input id="limit" name="limit" type="number" min="1" placeholder="Limit" />
+          <label class="field file-field">
+            <span>CSV file</span>
+            <input id="file" name="file" type="file" accept=".csv" required />
+          </label>
+          <label class="field limit-field">
+            <span>Limit</span>
+            <input id="limit" name="limit" type="number" min="1" placeholder="Optional" />
+          </label>
           <label class="checkbox-label">
             <input id="include-delivery" name="include-delivery" type="checkbox" />
             Include delivery estimates
@@ -49,4 +55,3 @@
     <script src="/static/app.js"></script>
   </body>
 </html>
-

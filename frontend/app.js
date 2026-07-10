@@ -3,6 +3,7 @@ const state = document.querySelector("#state");
 const summary = document.querySelector("#summary");
 const tbody = document.querySelector("#results tbody");
 const download = document.querySelector("#download");
+const submitButton = form.querySelector("button[type='submit']");
 
 let lastResult = null;
 
@@ -12,7 +13,8 @@ form.addEventListener("submit", async (event) => {
   const limit = document.querySelector("#limit").value;
   if (!file) return;
 
-  state.textContent = "Processing...";
+  setProcessing(true);
+  setState("Processing CSV and fetching product data...", "processing");
   tbody.innerHTML = "";
   summary.innerHTML = "";
   download.hidden = true;
@@ -31,9 +33,11 @@ form.addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(await response.text());
     lastResult = await response.json();
     render(lastResult);
-    state.textContent = "Done.";
+    setState("Done.", "success");
   } catch (error) {
-    state.textContent = `Failed: ${error.message}`;
+    setState(`Failed: ${error.message}`, "failed");
+  } finally {
+    setProcessing(false);
   }
 });
 
@@ -45,9 +49,14 @@ function render(result) {
 
   tbody.innerHTML = (result.products || [])
     .map((product) => {
-      const ads = (product.category_ads || []).map((ad) => `${ad.position}. ${ad.title || ""} (${ad.price || ""})`).join("<br>");
-      const errors = (product.errors || []).map((err) => `${err.stage}: ${err.code}`).join("<br>");
-      const deliveries = (product.delivery_estimates || []).map((d) => `${d.city}: ${d.status}${d.estimated_days ? ` (${d.estimated_days}d)` : ""}`).join("<br>");
+      const ads = renderLines(product.category_ads || [], (ad) => `${ad.position}. ${ad.title || "Untitled"}${ad.price ? ` - ${ad.price}` : ""}`);
+      const errors = renderLines(product.errors || [], (err) => `${err.stage}: ${err.code}`, "error-line", "No errors");
+      const deliveries = renderLines(
+        product.delivery_estimates || [],
+        (d) => `${d.city}: ${d.status}${d.estimated_days ? ` (${d.estimated_days}d)` : ""}`,
+        "delivery-line",
+        "Not requested",
+      );
       return `<tr>
         <td>${product.row_number || ""}</td>
         <td>${escapeHtml(product.product_id || "")}</td>
@@ -68,6 +77,22 @@ function render(result) {
   download.hidden = false;
 }
 
+function setProcessing(isProcessing) {
+  submitButton.disabled = isProcessing;
+  submitButton.textContent = isProcessing ? "Running..." : "Run";
+}
+
+function setState(message, type) {
+  state.className = `state ${type || ""}`.trim();
+  state.textContent = message;
+}
+
+function renderLines(items, formatter, className = "", emptyText = "None") {
+  if (!items.length) return `<span class="muted">${escapeHtml(emptyText)}</span>`;
+  const classes = ["pill-line", className].filter(Boolean).join(" ");
+  return `<div class="stack">${items.map((item) => `<span class="${classes}">${escapeHtml(formatter(item))}</span>`).join("")}</div>`;
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -77,4 +102,3 @@ function escapeHtml(value) {
     "'": "&#039;",
   })[char]);
 }
-
