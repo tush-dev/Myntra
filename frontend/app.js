@@ -99,8 +99,8 @@ function renderLines(items, formatter, className = "", emptyText = "None") {
 function renderImages(images) {
   const imageUrl = images.find((url) => typeof url === "string" && url.startsWith("https://"));
   if (!imageUrl) return `<span class="muted">No image</span>`;
-  return `<a href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener noreferrer">
-    <img src="${escapeAttribute(imageUrl)}" width="80" height="80" loading="lazy" style="object-fit:cover;border-radius:8px" />
+  return `<a class="image-link" href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener noreferrer">
+    <img class="product-thumb" src="${escapeAttribute(imageUrl)}" width="80" height="80" loading="lazy" />
   </a>`;
 }
 

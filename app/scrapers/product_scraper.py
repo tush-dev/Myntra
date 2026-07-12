@@ -19,7 +19,7 @@ def scrape_product(product_id: str, settings: Settings) -> ProductResult:
     product_settings = replace(
         settings,
         request_timeout=min(settings.request_timeout, PRODUCT_REQUEST_TIMEOUT),
-        retry_count=0,
+        retry_count=max(settings.retry_count, 1),
     )
     try:
         response = fetch_text(result.product_url, product_settings)
