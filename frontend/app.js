@@ -3,6 +3,7 @@ const state = document.querySelector("#state");
 const summary = document.querySelector("#summary");
 const tbody = document.querySelector("#results tbody");
 const download = document.querySelector("#download");
+const emptyState = document.querySelector("#empty-state");
 const submitButton = form.querySelector("button[type='submit']");
 
 let lastResult = null;
@@ -14,10 +15,11 @@ form.addEventListener("submit", async (event) => {
   if (!file) return;
 
   setProcessing(true);
-  setState("Processing CSV and fetching product data...", "processing");
+  setState("Processing CSV and fetching product data\u2026", "processing");
   tbody.innerHTML = "";
   summary.innerHTML = "";
   download.hidden = true;
+  emptyState.classList.add("hidden");
 
   const body = new FormData();
   body.append("file", file);
@@ -47,9 +49,14 @@ function render(result) {
     .map(([key, value]) => `<div class="metric"><strong>${value}</strong>${escapeHtml(key)}</div>`)
     .join("");
 
-  tbody.innerHTML = (result.products || [])
+  const products = result.products || [];
+  if (products.length) {
+    emptyState.classList.add("hidden");
+  }
+
+  tbody.innerHTML = products
     .map((product) => {
-      const ads = renderLines(product.category_ads || [], (ad) => `${ad.position}. ${ad.title || "Untitled"}${ad.price ? ` - ${ad.price}` : ""}`);
+      const ads = renderLines(product.category_ads || [], (ad) => `${ad.position}. ${ad.title || "Untitled"}${ad.price ? ` \u2014 ${ad.price}` : ""}`);
       const errors = renderLines(product.errors || [], (err) => `${err.stage}: ${err.code}`, "error-line", "No errors");
       const deliveries = renderLines(
         product.delivery_estimates || [],
@@ -57,7 +64,7 @@ function render(result) {
         "delivery-line",
         "Not requested",
       );
-      const images = renderImages(product.images || []);
+      const images = renderImages(product.images || [], product.title);
       return `<tr>
         <td>${product.row_number || ""}</td>
         <td>${escapeHtml(product.product_id || "")}</td>
@@ -82,7 +89,7 @@ function render(result) {
 
 function setProcessing(isProcessing) {
   submitButton.disabled = isProcessing;
-  submitButton.textContent = isProcessing ? "Running..." : "Run";
+  submitButton.textContent = isProcessing ? "Running\u2026" : "Run";
 }
 
 function setState(message, type) {
@@ -93,14 +100,15 @@ function setState(message, type) {
 function renderLines(items, formatter, className = "", emptyText = "None") {
   if (!items.length) return `<span class="muted">${escapeHtml(emptyText)}</span>`;
   const classes = ["pill-line", className].filter(Boolean).join(" ");
-  return `<div class="stack">${items.map((item) => `<span class="${classes}">${escapeHtml(formatter(item))}</span>`).join("")}</div>`;
+  return `<div class="stack">${items.map((item) => `<span class="${classes}">${escapeHtml(formatter(item))}</span>`)}</div>`;
 }
 
-function renderImages(images) {
+function renderImages(images, title) {
   const imageUrl = images.find((url) => typeof url === "string" && url.startsWith("https://"));
   if (!imageUrl) return `<span class="muted">No image</span>`;
+  const alt = title ? `${title} product image` : "Product image";
   return `<a class="image-link" href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener noreferrer">
-    <img class="product-thumb" src="${escapeAttribute(imageUrl)}" width="80" height="80" loading="lazy" />
+    <img class="product-thumb" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(alt)}" width="72" height="82" loading="lazy" />
   </a>`;
 }
 

@@ -5,34 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="referrer" content="no-referrer" />
     <title>Myntra Product Scraper</title>
-    <link rel="stylesheet" href="/static/styles.css?v=2" />
+    <link rel="stylesheet" href="/static/styles.css?v=3" />
   </head>
   <body>
     <main class="shell">
-      <section class="toolbar">
-        <div>
-          <h1>Myntra Product Scraper</h1>
-          <p>Upload a CSV with a <code>product_id</code> column and download structured JSON results.</p>
-        </div>
-        <form id="upload-form">
-          <label class="field file-field">
-            <span>CSV file</span>
-            <input id="file" name="file" type="file" accept=".csv" required />
-          </label>
-          <label class="field limit-field">
-            <span>Limit</span>
-            <input id="limit" name="limit" type="number" min="1" placeholder="Optional" />
-          </label>
-          <label class="checkbox-label">
-            <input id="include-delivery" name="include-delivery" type="checkbox" />
-            Include delivery estimates
-          </label>
-          <button type="submit">Run</button>
-        </form>
+      <header class="page-header">
+        <h1>Myntra Product Scraper</h1>
+        <p>Upload a CSV with a <code>product_id</code> column to extract product details, images, ratings, and sponsored results.</p>
+      </header>
+
+      <form id="upload-form" class="controls">
+        <label class="field file-field" for="file">
+          <span class="field-label">CSV file</span>
+          <input id="file" name="file" type="file" accept=".csv" required />
+        </label>
+        <label class="field limit-field" for="limit">
+          <span class="field-label">Limit</span>
+          <input id="limit" name="limit" type="number" min="1" placeholder="All" />
+        </label>
+        <label class="checkbox-label" for="include-delivery">
+          <input id="include-delivery" name="include-delivery" type="checkbox" />
+          Include delivery estimates
+        </label>
+        <button type="submit">Run</button>
+      </form>
+
+      <section id="state" class="state" aria-live="polite">Ready.</section>
+      <section id="summary" class="summary" aria-label="Summary"></section>
+
+      <section id="empty-state" class="empty-state">
+        <p>No results yet. Upload a CSV and click <strong>Run</strong> to begin.</p>
       </section>
 
-      <section id="state" class="state">Ready.</section>
-      <section id="summary" class="summary"></section>
       <section class="table-wrap">
         <table id="results">
           <thead>
@@ -54,6 +58,6 @@
       </section>
       <a id="download" class="download" hidden>Download JSON</a>
     </main>
-    <script src="/static/app.js?v=2"></script>
+    <script src="/static/app.js?v=3"></script>
   </body>
 </html>
