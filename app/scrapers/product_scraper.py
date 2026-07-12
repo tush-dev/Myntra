@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import replace
 
 from app.config import Settings
 from app.models import ErrorDetail, ProductResult
@@ -10,11 +11,18 @@ from app.utils.retry import FetchError, fetch_text
 
 logger = logging.getLogger(__name__)
 
+PRODUCT_REQUEST_TIMEOUT = 15.0
+
 
 def scrape_product(product_id: str, settings: Settings) -> ProductResult:
     result = ProductResult(product_id=product_id, product_url=_product_url(product_id))
+    product_settings = replace(
+        settings,
+        request_timeout=min(settings.request_timeout, PRODUCT_REQUEST_TIMEOUT),
+        retry_count=0,
+    )
     try:
-        response = fetch_text(result.product_url, settings)
+        response = fetch_text(result.product_url, product_settings)
         result.product_url = response.final_url
         result.fetch_status = response.status
         result.fetch_content_type = response.content_type

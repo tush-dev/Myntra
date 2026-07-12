@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.config import Settings
 from app.models import DeliveryEstimate, ErrorDetail
@@ -19,12 +19,18 @@ DELIVERY_PINCODES: list[dict[str, str]] = [
 ]
 
 MYNTRA_BASE_URL = "https://www.myntra.com"
+DELIVERY_REQUEST_TIMEOUT = 5.0
 
 
 def check_delivery_for_product(product_id: str, settings: Settings) -> list[DeliveryEstimate]:
     estimates: list[DeliveryEstimate] = []
+    delivery_settings = replace(
+        settings,
+        request_timeout=min(settings.request_timeout, DELIVERY_REQUEST_TIMEOUT),
+        retry_count=0,
+    )
     for entry in DELIVERY_PINCODES:
-        estimate = _check_single_pincode(product_id, entry["city"], entry["pincode"], settings)
+        estimate = _check_single_pincode(product_id, entry["city"], entry["pincode"], delivery_settings)
         estimates.append(estimate)
     return estimates
 

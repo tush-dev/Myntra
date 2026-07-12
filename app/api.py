@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import tempfile
 from dataclasses import replace
 from pathlib import Path
@@ -12,8 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.models import to_dict
 from app.services.batch_service import process_csv
+from app.utils.logging import configure_logging
 
 app = FastAPI(title="Myntra Product Scraper", version="1.0.0")
+configure_logging(settings.log_level)
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
@@ -38,6 +42,7 @@ async def scrape(file: UploadFile = File(...), limit: int | None = None, include
         temp_path = Path(handle.name)
     try:
         run_settings = replace(settings, include_delivery=include_delivery)
+        logger.info("scrape_request filename=%s bytes=%s limit=%s include_delivery=%s", file.filename, len(content), limit, include_delivery)
         result = process_csv(temp_path, limit=limit, settings=run_settings)
         result.source_file = file.filename
         return JSONResponse(json.loads(json.dumps(to_dict(result), ensure_ascii=False)))

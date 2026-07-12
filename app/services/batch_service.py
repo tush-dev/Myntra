@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 from app.config import Settings, settings as default_settings
@@ -12,6 +13,7 @@ from app.scrapers.product_scraper import scrape_product
 from app.utils.csv_reader import read_product_csv
 
 logger = logging.getLogger(__name__)
+POLL_INTERVAL_SECONDS = 0.5
 
 
 def process_csv(path: str | Path, limit: int | None = None, settings: Settings = default_settings) -> BatchResult:
@@ -27,16 +29,44 @@ def process_csv(path: str | Path, limit: int | None = None, settings: Settings =
 
     category_cache: dict[str, tuple] = {}
     max_workers = max(1, settings.concurrency)
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_map = {executor.submit(_process_one, product, settings, category_cache): product for product in selected_inputs}
-        for future in as_completed(future_map):
-            product = future_map[future]
-            try:
-                result = future.result()
-            except Exception as exc:
+    deadline = time.monotonic() + max(settings.batch_timeout, 0.001)
+    executor = ThreadPoolExecutor(max_workers=max_workers)
+    future_map = {executor.submit(_process_one, product, settings, category_cache): product for product in selected_inputs}
+    try:
+        while future_map:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                logger.warning("batch_timeout pending_products=%s timeout=%ss", len(future_map), settings.batch_timeout)
+                break
+            done, _ = wait(
+                future_map,
+                timeout=min(POLL_INTERVAL_SECONDS, remaining),
+                return_when=FIRST_COMPLETED,
+            )
+            for future in done:
+                product = future_map.pop(future)
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    result = ProductResult(product_id=product.product_id, row_number=product.row_number, status="failed")
+                    result.errors.append(ErrorDetail("product_parse", "UNHANDLED_ERROR", str(exc), False, 1))
+                results_by_row[product.row_number] = result
+    finally:
+        for future, product in list(future_map.items()):
+            future.cancel()
+            if product.row_number not in results_by_row:
                 result = ProductResult(product_id=product.product_id, row_number=product.row_number, status="failed")
-                result.errors.append(ErrorDetail("product_parse", "UNHANDLED_ERROR", str(exc), False, 1))
-            results_by_row[product.row_number] = result
+                result.errors.append(
+                    ErrorDetail(
+                        "product_processing",
+                        "PRODUCT_TIMEOUT",
+                        f"Product did not finish before the {settings.batch_timeout:g}s batch timeout.",
+                        retryable=True,
+                        attempts=1,
+                    )
+                )
+                results_by_row[product.row_number] = result
+        executor.shutdown(wait=False, cancel_futures=True)
 
     products = [results_by_row[key] for key in sorted(results_by_row)]
     summary = _summarize(products, selected_inputs, invalid_results)

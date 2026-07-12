@@ -1,5 +1,7 @@
+import time
 from pathlib import Path
 
+from app.config import Settings
 from app.models import ProductResult, to_dict
 from app.services import batch_service
 
@@ -83,3 +85,21 @@ def test_complete_product_failure_is_failed(monkeypatch, tmp_path: Path) -> None
     monkeypatch.setattr(batch_service, "scrape_product", lambda product_id, settings: ProductResult(product_id=product_id, status="failed"))
     result = batch_service.process_csv(csv_path)
     assert result.products[0].status == "failed"
+
+
+def test_batch_timeout_returns_structured_failed_product(monkeypatch, tmp_path: Path) -> None:
+    csv_path = tmp_path / "products.csv"
+    csv_path.write_text("product_id\n1\n", encoding="utf-8")
+
+    def slow_scrape_product(product_id, settings):
+        time.sleep(0.1)
+        return ProductResult(product_id=product_id, title="Too late")
+
+    monkeypatch.setattr(batch_service, "scrape_product", slow_scrape_product)
+
+    result = batch_service.process_csv(csv_path, settings=Settings(batch_timeout=0.01))
+    product = result.products[0]
+
+    assert product.status == "failed"
+    assert product.errors[0].stage == "product_processing"
+    assert product.errors[0].code == "PRODUCT_TIMEOUT"
