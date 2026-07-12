@@ -10,15 +10,12 @@ from app.utils.retry import FetchError, fetch_text
 
 logger = logging.getLogger(__name__)
 
-CATEGORY_REQUEST_TIMEOUT = 8.0
-
 
 def scrape_category_ads(category_url: str, settings: Settings) -> tuple[list[SponsoredResult], list[ErrorDetail], list[str]]:
     warnings: list[str] = []
     category_settings = replace(
         settings,
-        request_timeout=min(settings.request_timeout, CATEGORY_REQUEST_TIMEOUT),
-        retry_count=0,
+        retry_count=max(settings.retry_count, 1),
     )
     try:
         response = fetch_text(category_url, category_settings)
