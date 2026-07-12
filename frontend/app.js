@@ -57,10 +57,12 @@ function render(result) {
         "delivery-line",
         "Not requested",
       );
+      const images = renderImages(product.images || [], product.title || product.product_id || "Product image");
       return `<tr>
         <td>${product.row_number || ""}</td>
         <td>${escapeHtml(product.product_id || "")}</td>
         <td><span class="status ${product.status}">${product.status}</span></td>
+        <td>${images}</td>
         <td>${escapeHtml(product.title || "")}</td>
         <td>${product.rating ?? ""}</td>
         <td>${escapeHtml(product.category || "")}</td>
@@ -93,6 +95,16 @@ function renderLines(items, formatter, className = "", emptyText = "None") {
   return `<div class="stack">${items.map((item) => `<span class="${classes}">${escapeHtml(formatter(item))}</span>`).join("")}</div>`;
 }
 
+function renderImages(images, altText) {
+  const validImages = images.filter((url) => typeof url === "string" && url.startsWith("https://"));
+  if (!validImages.length) return `<span class="muted">No images</span>`;
+  return `<div class="image-list">${validImages.map((url, index) => `
+    <a href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">
+      <img src="${escapeAttribute(url)}" alt="${escapeAttribute(`${altText} ${index + 1}`)}" loading="lazy" />
+    </a>
+  `).join("")}</div>`;
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -101,4 +113,8 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;",
   })[char]);
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
 }
