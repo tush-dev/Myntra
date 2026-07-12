@@ -57,7 +57,7 @@ function render(result) {
         "delivery-line",
         "Not requested",
       );
-      const images = renderImages(product.images || [], product.title || product.product_id || "Product image");
+      const images = renderImages(product.images || []);
       return `<tr>
         <td>${product.row_number || ""}</td>
         <td>${escapeHtml(product.product_id || "")}</td>
@@ -96,11 +96,11 @@ function renderLines(items, formatter, className = "", emptyText = "None") {
   return `<div class="stack">${items.map((item) => `<span class="${classes}">${escapeHtml(formatter(item))}</span>`).join("")}</div>`;
 }
 
-function renderImages(images, altText) {
+function renderImages(images) {
   const imageUrl = images.find((url) => typeof url === "string" && url.startsWith("https://"));
   if (!imageUrl) return `<span class="muted">No image</span>`;
-  return `<a class="image-link" href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener noreferrer">
-    <img class="product-thumb" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(altText)}" loading="lazy" />
+  return `<a href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener noreferrer">
+    <img src="${escapeAttribute(imageUrl)}" width="80" height="80" loading="lazy" style="object-fit:cover;border-radius:8px" />
   </a>`;
 }
 
