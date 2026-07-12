@@ -4,7 +4,7 @@ const summary = document.querySelector("#summary");
 const tbody = document.querySelector("#results tbody");
 const download = document.querySelector("#download");
 const emptyState = document.querySelector("#empty-state");
-const submitButton = form.querySelector("button[type='submit']");
+const submitButton = document.querySelector("#run-btn");
 
 let lastResult = null;
 
