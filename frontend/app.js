@@ -72,6 +72,7 @@ function render(result) {
       </tr>`;
     })
     .join("");
+  bindImageFallbacks();
 
   const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
   download.href = URL.createObjectURL(blob);
@@ -96,13 +97,22 @@ function renderLines(items, formatter, className = "", emptyText = "None") {
 }
 
 function renderImages(images, altText) {
-  const validImages = images.filter((url) => typeof url === "string" && url.startsWith("https://"));
-  if (!validImages.length) return `<span class="muted">No images</span>`;
-  return `<div class="image-list">${validImages.map((url, index) => `
-    <a href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">
-      <img src="${escapeAttribute(url)}" alt="${escapeAttribute(`${altText} ${index + 1}`)}" loading="lazy" />
-    </a>
-  `).join("")}</div>`;
+  const imageUrl = images.find((url) => typeof url === "string" && url.startsWith("https://"));
+  if (!imageUrl) return `<span class="muted">No image</span>`;
+  return `<a class="image-link" href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener noreferrer">
+    <img class="product-thumb" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(altText)}" loading="lazy" />
+  </a>`;
+}
+
+function bindImageFallbacks() {
+  tbody.querySelectorAll(".product-thumb").forEach((image) => {
+    image.addEventListener("error", () => {
+      const fallback = document.createElement("span");
+      fallback.className = "muted";
+      fallback.textContent = "No image";
+      image.closest(".image-link").replaceWith(fallback);
+    }, { once: true });
+  });
 }
 
 function escapeHtml(value) {

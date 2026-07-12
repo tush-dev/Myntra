@@ -293,23 +293,20 @@ td:nth-child(10) {
   color: #38465c;
 }
 
-.image-list {
-  display: flex;
-  gap: 8px;
-}
-
-.image-list a {
+.image-link {
   display: block;
+  width: 78px;
+  height: 88px;
   border: 1px solid #e4e0e8;
   border-radius: 8px;
   background: #fff;
+  overflow: hidden;
 }
 
-.image-list img {
+.product-thumb {
   display: block;
-  width: 48px;
-  height: 64px;
-  border-radius: 7px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
