@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -12,8 +13,10 @@ from app.config import Settings
 
 try:
     from curl_cffi import requests as curl_requests
+    from curl_cffi.requests import Session as CurlSession
 except Exception:  # pragma: no cover - optional fallback for minimal environments
     curl_requests = None
+    CurlSession = None
 
 
 @dataclass
@@ -38,29 +41,51 @@ class FetchError(Exception):
 
 TRANSIENT_STATUSES = {408, 425, 429, 500, 502, 503, 504}
 
+_headers: dict[str, str] | None = None
+_session: CurlSession | None = None
+_session_lock = threading.Lock()
+
+
+def _get_headers(settings: Settings) -> dict[str, str]:
+    global _headers
+    if _headers is None:
+        _headers = {
+            "User-Agent": settings.user_agent,
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8"
+            ),
+            "Accept-Language": "en-IN,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+        }
+    return _headers
+
+
+def _get_session() -> CurlSession | None:
+    global _session
+    if CurlSession is None:
+        return None
+    if _session is None:
+        with _session_lock:
+            if _session is None:
+                _session = CurlSession(impersonate="chrome")
+    return _session
+
 
 def fetch_text(url: str, settings: Settings) -> FetchResponse:
-    headers = {
-        "User-Agent": settings.user_agent,
-        "Accept": (
-            "text/html,application/xhtml+xml,application/xml;q=0.9,"
-            "image/avif,image/webp,image/apng,*/*;q=0.8"
-        ),
-        "Accept-Language": "en-IN,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-    }
+    headers = _get_headers(settings)
     attempts = max(settings.retry_count, 0) + 1
     last_error: FetchError | None = None
 
     for attempt in range(1, attempts + 1):
-        if settings.request_delay:
+        if settings.request_delay and attempt > 1:
             time.sleep(settings.request_delay + random.uniform(0, settings.jitter))
         try:
             if curl_requests is not None:
@@ -103,13 +128,22 @@ def fetch_text(url: str, settings: Settings) -> FetchResponse:
 
 
 def _fetch_with_curl_cffi(url: str, headers: dict[str, str], settings: Settings, attempt: int) -> FetchResponse:
-    response = curl_requests.get(
-        url,
-        headers=headers,
-        timeout=settings.request_timeout,
-        impersonate="chrome",
-        allow_redirects=True,
-    )
+    session = _get_session()
+    if session is not None:
+        response = session.get(
+            url,
+            headers=headers,
+            timeout=settings.request_timeout,
+            allow_redirects=True,
+        )
+    else:
+        response = curl_requests.get(
+            url,
+            headers=headers,
+            timeout=settings.request_timeout,
+            impersonate="chrome",
+            allow_redirects=True,
+        )
     if response.status_code >= 400:
         retryable = response.status_code in TRANSIENT_STATUSES
         raise FetchError(f"HTTP_{response.status_code}", f"HTTP {response.status_code} while fetching {url}", retryable, attempt)

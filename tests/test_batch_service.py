@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.config import Settings
 from app.models import ProductResult, to_dict
+from app.scrapers import category_scraper, delivery, product_scraper
 from app.services import batch_service
 
 
@@ -15,8 +16,8 @@ def test_batch_continues_after_individual_failure(monkeypatch, tmp_path: Path) -
             return ProductResult(product_id=product_id, title="Ok", images=["x"], category_url="https://x", category="Cat")
         return ProductResult(product_id=product_id, status="failed")
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
-    monkeypatch.setattr(batch_service, "scrape_category_ads", lambda url, settings: ([], [], []))
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(category_scraper, "scrape_category_ads", lambda url, settings: ([], [], []))
     result = batch_service.process_csv(csv_path)
     assert result.summary.total_rows == 2
     assert result.summary.partial == 1
@@ -41,7 +42,7 @@ def test_product_details_with_missing_category_url_is_partial(monkeypatch, tmp_p
             category_url=None,
         )
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
     result = batch_service.process_csv(csv_path)
     product = result.products[0]
     assert product.status == "partial"
@@ -66,9 +67,9 @@ def test_sponsored_stage_failure_preserves_product_fields(monkeypatch, tmp_path:
             category_url="https://www.myntra.com/handbags",
         )
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
     monkeypatch.setattr(
-        batch_service,
+        category_scraper,
         "scrape_category_ads",
         lambda url, settings: ([], [batch_service.ErrorDetail("category_fetch", "HTTP_500", "boom", True, 1)], []),
     )
@@ -82,7 +83,7 @@ def test_sponsored_stage_failure_preserves_product_fields(monkeypatch, tmp_path:
 def test_complete_product_failure_is_failed(monkeypatch, tmp_path: Path) -> None:
     csv_path = tmp_path / "products.csv"
     csv_path.write_text("product_id\n1\n", encoding="utf-8")
-    monkeypatch.setattr(batch_service, "scrape_product", lambda product_id, settings: ProductResult(product_id=product_id, status="failed"))
+    monkeypatch.setattr(product_scraper, "scrape_product", lambda product_id, settings: ProductResult(product_id=product_id, status="failed"))
     result = batch_service.process_csv(csv_path)
     assert result.products[0].status == "failed"
 
@@ -95,7 +96,7 @@ def test_batch_timeout_returns_structured_failed_product(monkeypatch, tmp_path: 
         time.sleep(0.1)
         return ProductResult(product_id=product_id, title="Too late")
 
-    monkeypatch.setattr(batch_service, "scrape_product", slow_scrape_product)
+    monkeypatch.setattr(product_scraper, "scrape_product", slow_scrape_product)
 
     result = batch_service.process_csv(csv_path, settings=Settings(batch_timeout=0.01))
     product = result.products[0]

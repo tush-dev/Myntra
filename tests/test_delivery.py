@@ -2,7 +2,7 @@ from pathlib import Path
 
 from app.config import Settings
 from app.models import DeliveryEstimate, ProductResult, to_dict
-from app.scrapers.delivery import check_delivery_for_product
+from app.scrapers import category_scraper, delivery, product_scraper
 from app.services import batch_service
 
 
@@ -23,8 +23,8 @@ def test_delivery_disabled_by_default(monkeypatch, tmp_path: Path) -> None:
             category_url="https://x",
         )
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
-    monkeypatch.setattr(batch_service, "scrape_category_ads", lambda url, settings: ([], [], []))
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(category_scraper, "scrape_category_ads", lambda url, settings: ([], [], []))
     result = batch_service.process_csv(csv_path)
     product = result.products[0]
     assert product.delivery_estimates == []
@@ -56,9 +56,9 @@ def test_delivery_enabled_adds_five_city_entries(monkeypatch, tmp_path: Path) ->
             DeliveryEstimate(city="Kolkata", pincode="700001", status="unavailable"),
         ]
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
-    monkeypatch.setattr(batch_service, "scrape_category_ads", lambda url, settings: ([], [], []))
-    monkeypatch.setattr(batch_service, "check_delivery_for_product", fake_check_delivery)
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(category_scraper, "scrape_category_ads", lambda url, settings: ([], [], []))
+    monkeypatch.setattr(delivery, "check_delivery_for_product", fake_check_delivery)
 
     settings = Settings(include_delivery=True)
     result = batch_service.process_csv(csv_path, settings=settings)
@@ -88,9 +88,9 @@ def test_delivery_failure_preserves_product_status(monkeypatch, tmp_path: Path) 
     def failing_check_delivery(product_id, settings):
         raise RuntimeError("Delivery API exploded")
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
-    monkeypatch.setattr(batch_service, "scrape_category_ads", lambda url, settings: ([], [], []))
-    monkeypatch.setattr(batch_service, "check_delivery_for_product", failing_check_delivery)
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(category_scraper, "scrape_category_ads", lambda url, settings: ([], [], []))
+    monkeypatch.setattr(delivery, "check_delivery_for_product", failing_check_delivery)
 
     settings = Settings(include_delivery=True)
     result = batch_service.process_csv(csv_path, settings=settings)
@@ -122,9 +122,9 @@ def test_json_serialization_includes_delivery_estimates(monkeypatch, tmp_path: P
             DeliveryEstimate(city="Bengaluru", pincode="560001", status="success", estimated_days=3),
         ]
 
-    monkeypatch.setattr(batch_service, "scrape_product", fake_scrape_product)
-    monkeypatch.setattr(batch_service, "scrape_category_ads", lambda url, settings: ([], [], []))
-    monkeypatch.setattr(batch_service, "check_delivery_for_product", fake_check_delivery)
+    monkeypatch.setattr(product_scraper, "scrape_product", fake_scrape_product)
+    monkeypatch.setattr(category_scraper, "scrape_category_ads", lambda url, settings: ([], [], []))
+    monkeypatch.setattr(delivery, "check_delivery_for_product", fake_check_delivery)
 
     settings = Settings(include_delivery=True)
     result = batch_service.process_csv(csv_path, settings=settings)

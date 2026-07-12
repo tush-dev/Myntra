@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+import copy
 import logging
+import threading
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 from app.config import Settings, settings as default_settings
 from app.models import BatchResult, BatchSummary, ErrorDetail, ProductInput, ProductResult, utc_now_iso
-from app.scrapers.category_scraper import scrape_category_ads
-from app.scrapers.delivery import check_delivery_for_product
-from app.scrapers.product_scraper import scrape_product
+from app.scrapers import category_scraper, delivery, product_scraper
 from app.utils.csv_reader import read_product_csv
 
 logger = logging.getLogger(__name__)
-POLL_INTERVAL_SECONDS = 0.5
+POLL_INTERVAL_SECONDS = 0.3
 
 
 def process_csv(path: str | Path, limit: int | None = None, settings: Settings = default_settings) -> BatchResult:
@@ -27,11 +27,57 @@ def process_csv(path: str | Path, limit: int | None = None, settings: Settings =
         if invalid.row_number is not None:
             results_by_row[invalid.row_number] = invalid
 
+    id_to_first_row: dict[str, int] = {}
+    duplicate_rows: dict[str, list[int]] = {}
+    unique_inputs: list[ProductInput] = []
+    all_inputs_by_row: dict[int, ProductInput] = {}
+    for product in selected_inputs:
+        all_inputs_by_row[product.row_number] = product
+        pid = product.product_id
+        if not pid:
+            unique_inputs.append(product)
+            continue
+        if pid in id_to_first_row:
+            duplicate_rows.setdefault(pid, []).append(product.row_number)
+            product.duplicate = True
+        else:
+            id_to_first_row[pid] = product.row_number
+            unique_inputs.append(product)
+
     category_cache: dict[str, tuple] = {}
+    category_lock = threading.Lock()
     max_workers = max(1, settings.concurrency)
     deadline = time.monotonic() + max(settings.batch_timeout, 0.001)
+    completed = 0
+    total = len(unique_inputs)
+    completed_lock = threading.Lock()
+
+    def _on_done(future, product):
+        nonlocal completed
+        try:
+            result = future.result()
+        except Exception as exc:
+            result = ProductResult(product_id=product.product_id, row_number=product.row_number, status="failed")
+            result.errors.append(ErrorDetail("product_parse", "UNHANDLED_ERROR", str(exc), False, 1))
+        results_by_row[product.row_number] = result
+        pid = product.product_id
+        if pid and pid in duplicate_rows:
+            for dup_row in duplicate_rows[pid]:
+                dup_result = copy.deepcopy(result)
+                dup_result.row_number = dup_row
+                dup_result.warnings = list(result.warnings) + ["Duplicate product_id row in input CSV."]
+                results_by_row[dup_row] = dup_result
+        with completed_lock:
+            completed += 1
+            logger.info("progress %d/%d product_id=%s status=%s", completed, total, product.product_id, result.status)
+
     executor = ThreadPoolExecutor(max_workers=max_workers)
-    future_map = {executor.submit(_process_one, product, settings, category_cache): product for product in selected_inputs}
+    future_map = {}
+    for product in unique_inputs:
+        future = executor.submit(_process_one, product, settings, category_cache, category_lock)
+        future_map[future] = product
+        future.add_done_callback(lambda f, p=product: _on_done(f, p))
+
     try:
         while future_map:
             remaining = deadline - time.monotonic()
@@ -44,13 +90,7 @@ def process_csv(path: str | Path, limit: int | None = None, settings: Settings =
                 return_when=FIRST_COMPLETED,
             )
             for future in done:
-                product = future_map.pop(future)
-                try:
-                    result = future.result()
-                except Exception as exc:
-                    result = ProductResult(product_id=product.product_id, row_number=product.row_number, status="failed")
-                    result.errors.append(ErrorDetail("product_parse", "UNHANDLED_ERROR", str(exc), False, 1))
-                results_by_row[product.row_number] = result
+                future_map.pop(future, None)
     finally:
         for future, product in list(future_map.items()):
             future.cancel()
@@ -74,16 +114,15 @@ def process_csv(path: str | Path, limit: int | None = None, settings: Settings =
     return BatchResult(utc_now_iso(), source_path.name, summary, products)
 
 
-def _process_one(product: ProductInput, settings: Settings, category_cache: dict[str, tuple]) -> ProductResult:
+def _process_one(product: ProductInput, settings: Settings, category_cache: dict[str, tuple], category_lock: threading.Lock) -> ProductResult:
     logger.info("product_start row=%s product_id=%s", product.row_number, product.product_id)
-    result = scrape_product(product.product_id or "", settings)
+    result = product_scraper.scrape_product(product.product_id or "", settings)
     result.row_number = product.row_number
-    if product.duplicate:
-        result.warnings.append("Duplicate product_id row in input CSV.")
 
     if result.status != "failed" and result.category_url:
-        if result.category_url not in category_cache:
-            category_cache[result.category_url] = scrape_category_ads(result.category_url, settings)
+        with category_lock:
+            if result.category_url not in category_cache:
+                category_cache[result.category_url] = category_scraper.scrape_category_ads(result.category_url, settings)
         ads, errors, warnings = category_cache[result.category_url]
         result.category_ads = list(ads)
         result.errors.extend(errors)
@@ -103,7 +142,7 @@ def _process_one(product: ProductInput, settings: Settings, category_cache: dict
 
     if settings.include_delivery and result.status != "failed" and result.product_id:
         try:
-            result.delivery_estimates = check_delivery_for_product(result.product_id, settings)
+            result.delivery_estimates = delivery.check_delivery_for_product(result.product_id, settings)
         except Exception as exc:
             result.warnings.append(f"Delivery check failed: {exc}")
 
